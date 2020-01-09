@@ -6,6 +6,7 @@
 #include <opencv\cv.h>
 #include <opencv2\highgui\highgui.hpp>
 #include <vector>
+#include <ctime>
 
 
 using namespace std;
@@ -128,11 +129,11 @@ static void on_HoughLines(cv::Mat src, cv::Mat dst)
 {
 	Mat midImage = src.clone();
 
-	imshow("2", midImage);
-	waitKey(15);
+	/*imshow("2", midImage);
+	waitKey(15);*/
 	//调用HoughLinesP函数  
 	vector<Vec4i> mylines;
-	HoughLinesP(midImage, mylines, 1, CV_PI / 180, 50 + 1, 30, 10);//局部otsu和全局otsu分别设置不同的参数
+	HoughLinesP(midImage, mylines, 1, CV_PI / 180, 150 + 1, 50, 10);//局部otsu和全局otsu分别设置不同的参数
 	//循环遍历绘制每一条线段  
 	for (size_t i = 0; i < mylines.size(); i++)
 	{
@@ -143,22 +144,21 @@ static void on_HoughLines(cv::Mat src, cv::Mat dst)
 //灰度直方图
 Mat getHistograph(const Mat grayImage);
 
-
-
-void main(int argc, char **argv)
+cv::Mat SeaSkyDetector(cv::Mat input)
 {
-	cv::Mat src1 = imread("test1.png");
+	cv::Rect rect(0,200,1920,150);
+	cv::Mat src1 = input(rect);
 	cv::Mat srcGray;
 	cvtColor(src1, srcGray, CV_BGR2GRAY);
 
 	//中值滤波，过滤噪声
 	medianBlur(srcGray, srcGray, 3);
-	
 
-//对于天空和海水各自的灰度一致性较强的情况，两者效果差距不大
-//对于光照不均匀的情况，例如海面较强反光等，采用局部otsu效果较好
 
-#if 0 //全局otsu求阈值
+	//对于天空和海水各自的灰度一致性较强的情况，两者效果差距不大
+	//对于光照不均匀的情况，例如海面较强反光等，采用局部otsu效果较好
+
+#if 1 //全局otsu求阈值
 
 	int threshold = otsu(srcGray);
 	printf("threshold = %d\n", threshold);
@@ -167,18 +167,18 @@ void main(int argc, char **argv)
 	cvThreshold(&(IplImage)srcGray, &(IplImage)dst, threshold, 255, CV_THRESH_BINARY);
 
 	cv::Mat edgeimg = edge(dst);
-	imshow(" 1", edgeimg);
-	waitKey(5);
+	/*imshow(" 1", edgeimg);
+	waitKey(5);*/
 	on_HoughLines(edgeimg, src1);
-	imwrite("dst.jpg", src1);
+	//imwrite("dst.jpg", src1);
 	imshow(" src1", src1);
-	waitKey(15);
-
+	waitKey(5);
+	return src1;
 
 #else //局部otsu求阈值
 	cv::Mat res = cv::Mat::zeros(srcGray.rows, srcGray.cols, CV_8UC3);
 	const int grid = 8;
-	for (int i = 0; i<grid; i++)
+	for (int i = 0; i < grid; i++)
 	{
 
 		cv::Mat t = srcGray(Rect(i* srcGray.cols / grid, 0, srcGray.cols / grid, srcGray.rows));
@@ -204,6 +204,22 @@ void main(int argc, char **argv)
 
 	cv::waitKey(10);
 #endif
+}
+
+void main(int argc, char **argv)
+{
+	VideoCapture cap("test2.mp4");
+	cv::Mat frame;
+	cap >> frame;
+	clock_t start, end;
+	while (!frame.empty())
+	{
+		cap >> frame;
+		start = clock();
+		SeaSkyDetector(frame);
+		end = clock();
+		cout << end - start << endl;
+	}
 
 	getchar();
 }
