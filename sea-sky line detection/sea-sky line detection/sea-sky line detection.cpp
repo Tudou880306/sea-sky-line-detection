@@ -148,23 +148,23 @@ Mat getHistograph(const Mat grayImage);
 void main(int argc, char **argv)
 {
 	cv::Mat src1 = imread("test1.png");
-	cv::Mat src;
-	cvtColor(src1, src, CV_BGR2GRAY);
+	cv::Mat srcGray;
+	cvtColor(src1, srcGray, CV_BGR2GRAY);
 
 	//中值滤波，过滤噪声
-	medianBlur(src, src, 3);
+	medianBlur(srcGray, srcGray, 3);
 	
 
 //对于天空和海水各自的灰度一致性较强的情况，两者效果差距不大
 //对于光照不均匀的情况，例如海面较强反光等，采用局部otsu效果较好
 
-#if 1 //全局otsu求阈值
+#if 0 //全局otsu求阈值
 
-	int threshold = otsu(src);
+	int threshold = otsu(srcGray);
 	printf("threshold = %d\n", threshold);
 	//对图像二值化
-	cv::Mat dst = cv::Mat::zeros(src.rows, src.cols, CV_8UC1);
-	cvThreshold(&(IplImage)src, &(IplImage)dst, threshold, 255, CV_THRESH_BINARY);
+	cv::Mat dst = cv::Mat::zeros(srcGray.rows, srcGray.cols, CV_8UC1);
+	cvThreshold(&(IplImage)srcGray, &(IplImage)dst, threshold, 255, CV_THRESH_BINARY);
 
 	cv::Mat edgeimg = edge(dst);
 	imshow(" 1", edgeimg);
@@ -176,13 +176,13 @@ void main(int argc, char **argv)
 
 
 #else //局部otsu求阈值
-	cv::Mat res = cv::Mat::zeros(src.rows, src.cols, CV_8UC3);
+	cv::Mat res = cv::Mat::zeros(srcGray.rows, srcGray.cols, CV_8UC3);
 	const int grid = 8;
 	for (int i = 0; i<grid; i++)
 	{
 
-		cv::Mat t = src(Rect(i* src.cols / grid, 0, src.cols / grid, src.rows));
-		cv::Mat t1 = src1(Rect(i* src.cols / grid, 0, src.cols / grid, src.rows));
+		cv::Mat t = srcGray(Rect(i* srcGray.cols / grid, 0, srcGray.cols / grid, srcGray.rows));
+		cv::Mat t1 = src1(Rect(i* srcGray.cols / grid, 0, srcGray.cols / grid, srcGray.rows));
 		int threshold = otsu(t);
 		printf("threshold = %d\n", threshold);
 		//对图像二值化
@@ -195,7 +195,7 @@ void main(int argc, char **argv)
 		on_HoughLines(edgeimg, t1);
 		cv::imshow(" t1", t1);
 		cv::waitKey(5);
-		Rect rect(i* src.cols / grid, 0, src.cols / grid, src.rows);
+		Rect rect(i* srcGray.cols / grid, 0, srcGray.cols / grid, srcGray.rows);
 		cv::Mat tt = res(rect);
 		t1.copyTo(tt);
 	}
